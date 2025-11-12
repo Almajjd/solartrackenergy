@@ -9,12 +9,12 @@ interface WaterTankProps {
 }
 
 export function WaterTank({ level }: WaterTankProps) {
-  const waterColorClass =
-    level > 50
-      ? "bg-blue-500"
-      : level > 20
-      ? "bg-yellow-500"
-      : "bg-red-500";
+  const levels = [
+    { threshold: 25, label: "25%" },
+    { threshold: 50, label: "50%" },
+    { threshold: 75, label: "75%" },
+    { threshold: 100, label: "100%" },
+  ];
 
   return (
     <Card>
@@ -23,21 +23,33 @@ export function WaterTank({ level }: WaterTankProps) {
         <Droplets className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="flex items-end gap-4 h-48">
-          <div className="w-1/2 h-full rounded-lg bg-muted border-2 border-border flex flex-col justify-end overflow-hidden relative">
-            <div
-              className={cn("w-full transition-all duration-1000 ease-in-out relative", waterColorClass)}
-              style={{ height: `${level}%` }}
-            >
-              <div className="absolute -bottom-2 w-full">
-                <svg className="w-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
-                  <path fill="hsl(var(--card))" fillOpacity="0.5" d="M0,192L48,176C96,160,192,128,288,133.3C384,139,480,181,576,186.7C672,192,768,160,864,138.7C960,117,1056,107,1152,112C1248,117,1344,139,1392,149.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-                </svg>
-              </div>
-            </div>
+        <div className="flex flex-col justify-around gap-2 h-48">
+          <div className="flex items-end justify-center gap-4 h-full">
+            {levels.map((item, index) => {
+              const isActive = level >= item.threshold;
+              const barHeight = `${item.threshold}%`;
+              const waterColorClass =
+                level > 50
+                  ? "bg-blue-500"
+                  : level > 20
+                  ? "bg-yellow-500"
+                  : "bg-red-500";
+
+              return (
+                <div key={index} className="flex flex-col items-center justify-end h-full w-1/4">
+                  <div className="relative w-full h-full bg-muted rounded-t-md overflow-hidden border-t border-x">
+                    <div
+                      className={cn("absolute bottom-0 w-full transition-all duration-500", isActive ? waterColorClass : "bg-muted")}
+                      style={{ height: '100%' }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-muted-foreground mt-1">{item.label}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="w-1/2 flex flex-col justify-center">
-            <p className="text-4xl font-bold">{level.toFixed(0)}%</p>
+           <div className="w-full flex flex-col items-center">
+            <p className="text-3xl font-bold">{level.toFixed(0)}%</p>
             <p className="text-xs text-muted-foreground">
               {level > 50 ? "Normal" : level > 20 ? "Low" : "Critical"}
             </p>

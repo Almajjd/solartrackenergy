@@ -8,7 +8,7 @@ export function Header() {
           <Bolt className="h-6 w-6" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">
-          EnergiTrack
+          Solar Pump Track
         </h1>
       </div>
       <div className="flex items-center gap-2">
