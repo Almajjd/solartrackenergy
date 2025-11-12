@@ -28,6 +28,13 @@ export function WaterTank({ level }: WaterTankProps) {
     ? "Low"
     : "Critical";
 
+  const barLevels = [
+    { value: 25, label: "25%" },
+    { value: 50, label: "50%" },
+    { value: 75, label: "75%" },
+    { value: 100, label: "100%" },
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -35,7 +42,7 @@ export function WaterTank({ level }: WaterTankProps) {
         <Droplets className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col justify-between items-center h-48">
+        <div className="flex justify-center items-center h-48 gap-4">
           <div className="relative w-28 h-40 bg-card border-2 border-foreground rounded-lg p-2 flex flex-col-reverse gap-1.5">
              <div className="absolute inset-x-0 top-1.5 text-center">
                  <p className="text-sm font-bold text-foreground">{level.toFixed(0)}%</p>
@@ -45,11 +52,16 @@ export function WaterTank({ level }: WaterTankProps) {
              <div className={cn("h-1/4 w-full rounded-sm", getBarState(75))}></div>
              <div className={cn("h-1/4 w-full rounded-sm", getBarState(100))}></div>
           </div>
-          <div className="w-full flex flex-col items-center">
+          <div className="flex flex-col-reverse h-40 justify-between text-xs text-muted-foreground py-2 gap-1.5">
+            {barLevels.map((bar, index) => (
+                <div key={bar.value} className="h-1/4 flex items-center">{bar.label}</div>
+            ))}
+          </div>
+        </div>
+        <div className="w-full flex flex-col items-center mt-[-20px]">
             <p className="text-xs text-muted-foreground">
               {levelText}
             </p>
-          </div>
         </div>
       </CardContent>
     </Card>
