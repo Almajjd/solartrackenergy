@@ -9,12 +9,24 @@ interface WaterTankProps {
 }
 
 export function WaterTank({ level }: WaterTankProps) {
-  const waterColorClass =
-    level > 50
-      ? "bg-blue-500"
-      : level > 20
-      ? "bg-yellow-500"
-      : "bg-red-500";
+  const getBarState = (barLevel: number) => {
+    if (level >= barLevel) {
+      if (level > 75) return "bg-green-500";
+      if (level > 50) return "bg-yellow-500";
+      if (level > 25) return "bg-orange-500";
+      return "bg-red-500";
+    }
+    return "bg-muted";
+  };
+  
+  const levelText =
+    level > 75
+    ? "Full"
+    : level > 50
+    ? "Good"
+    : level > 25
+    ? "Low"
+    : "Critical";
 
   return (
     <Card>
@@ -24,23 +36,18 @@ export function WaterTank({ level }: WaterTankProps) {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col justify-between items-center h-48">
-          <div className="relative w-24 h-40 bg-muted rounded-lg border-2 border-border overflow-hidden">
-            <div
-              className={cn(
-                "absolute bottom-0 w-full transition-all duration-500",
-                waterColorClass
-              )}
-              style={{ height: `${level}%` }}
-            ></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xl font-bold text-white mix-blend-difference">
-                    {level.toFixed(0)}%
-                </span>
-            </div>
+          <div className="relative w-28 h-40 bg-card border-2 border-foreground rounded-lg p-2 flex flex-col-reverse gap-1.5">
+             <div className="absolute inset-x-0 top-1.5 text-center">
+                 <p className="text-sm font-bold text-foreground">{level.toFixed(0)}%</p>
+             </div>
+             <div className={cn("h-1/4 w-full rounded-sm", getBarState(25))}></div>
+             <div className={cn("h-1/4 w-full rounded-sm", getBarState(50))}></div>
+             <div className={cn("h-1/4 w-full rounded-sm", getBarState(75))}></div>
+             <div className={cn("h-1/4 w-full rounded-sm", getBarState(100))}></div>
           </div>
           <div className="w-full flex flex-col items-center">
             <p className="text-xs text-muted-foreground">
-              {level > 50 ? "Normal" : level > 20 ? "Low" : "Critical"}
+              {levelText}
             </p>
           </div>
         </div>
