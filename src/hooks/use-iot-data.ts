@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import mqtt from 'mqtt';
 
 export interface IotData {
   waterTankLevel: number;
@@ -12,13 +13,16 @@ export interface IotData {
 }
 
 const initialData: IotData = {
-    waterTankLevel: 75,
-    batteryVoltage: 13.2,
-    batteryCapacity: 88,
+    waterTankLevel: 0,
+    batteryVoltage: 12.5,
+    batteryCapacity: 80,
     solarVoltage: 0,
     solarCurrent: 0,
     isPumpOn: false,
 };
+
+const MQTT_BROKER = "wss://broker.emqx.io:8084/mqtt";
+const TOPIC_LEVEL = "tandon/level";
 
 export function useIotData() {
   const [data, setData] = useState<IotData>(initialData);
@@ -29,16 +33,41 @@ export function useIotData() {
   }, []);
 
   useEffect(() => {
+    // MQTT Client Setup
+    const client = mqtt.connect(MQTT_BROKER);
+
+    client.on('connect', () => {
+      console.log('Connected to MQTT broker!');
+      client.subscribe(TOPIC_LEVEL, (err) => {
+        if (!err) {
+          console.log(`Subscribed to topic: ${TOPIC_LEVEL}`);
+        }
+      });
+    });
+
+    client.on('message', (topic, message) => {
+      if (topic === TOPIC_LEVEL) {
+        try {
+          const payload = JSON.parse(message.toString());
+          setData(prevData => ({
+            ...prevData,
+            waterTankLevel: payload.level_percent || prevData.waterTankLevel,
+          }));
+        } catch (e) {
+          console.error('Failed to parse MQTT message:', e);
+        }
+      }
+    });
+
+    client.on('error', (err) => {
+      console.error('MQTT Connection Error:', err);
+      client.end();
+    });
+
+    // Simulation for other data points remains for now
     const interval = setInterval(() => {
       setData(prevData => {
-        let { waterTankLevel, batteryCapacity, isPumpOn } = prevData;
-
-        // Simulate water level changes
-        if (isPumpOn) {
-          waterTankLevel = Math.max(0, waterTankLevel - 1);
-        } else {
-          waterTankLevel = Math.min(100, waterTankLevel + 0.2);
-        }
+        let { batteryCapacity, isPumpOn } = prevData;
 
         // Simulate daytime for solar panel
         const hour = new Date().getHours();
@@ -61,17 +90,21 @@ export function useIotData() {
         let newBatteryVoltage = 11.8 + (batteryCapacity / 100) * 1.9;
 
         return {
-          waterTankLevel: parseFloat(waterTankLevel.toFixed(2)),
+          ...prevData,
           batteryVoltage: parseFloat(newBatteryVoltage.toFixed(1)),
           batteryCapacity: parseFloat(batteryCapacity.toFixed(2)),
           solarVoltage: parseFloat(newSolarVoltage.toFixed(1)),
           solarCurrent: parseFloat(newSolarCurrent.toFixed(1)),
-          isPumpOn: prevData.isPumpOn,
         };
       });
     }, 2000); // Update every 2 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      if (client) {
+        client.end();
+      }
+      clearInterval(interval);
+    };
   }, []);
 
   return { data, togglePump };
