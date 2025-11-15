@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import mqtt from 'mqtt';
+import type { MqttClient } from 'mqtt';
 
 export interface IotData {
   waterTankLevel: number;
@@ -26,6 +26,7 @@ const TOPIC_LEVEL = "tandon/level";
 
 export function useIotData() {
   const [data, setData] = useState<IotData>(initialData);
+  const [client, setClient] = useState<MqttClient | null>(null);
 
   const togglePump = useCallback(() => {
     setData(prevData => ({ ...prevData, isPumpOn: !prevData.isPumpOn }));
@@ -33,37 +34,50 @@ export function useIotData() {
   }, []);
 
   useEffect(() => {
-    // MQTT Client Setup
-    const client = mqtt.connect(MQTT_BROKER);
+    // Import mqtt library dynamically only on the client side
+    import('mqtt').then(mqtt => {
+      const mqttClient = mqtt.connect(MQTT_BROKER);
+      setClient(mqttClient);
 
-    client.on('connect', () => {
-      console.log('Connected to MQTT broker!');
-      client.subscribe(TOPIC_LEVEL, (err) => {
-        if (!err) {
-          console.log(`Subscribed to topic: ${TOPIC_LEVEL}`);
+      mqttClient.on('connect', () => {
+        console.log('Connected to MQTT broker!');
+        mqttClient.subscribe(TOPIC_LEVEL, (err) => {
+          if (!err) {
+            console.log(`Subscribed to topic: ${TOPIC_LEVEL}`);
+          }
+        });
+      });
+
+      mqttClient.on('message', (topic, message) => {
+        if (topic === TOPIC_LEVEL) {
+          try {
+            const payload = JSON.parse(message.toString());
+            setData(prevData => ({
+              ...prevData,
+              waterTankLevel: payload.level_percent || prevData.waterTankLevel,
+            }));
+          } catch (e) {
+            console.error('Failed to parse MQTT message:', e);
+          }
         }
+      });
+
+      mqttClient.on('error', (err) => {
+        console.error('MQTT Connection Error:', err);
+        mqttClient.end();
       });
     });
 
-    client.on('message', (topic, message) => {
-      if (topic === TOPIC_LEVEL) {
-        try {
-          const payload = JSON.parse(message.toString());
-          setData(prevData => ({
-            ...prevData,
-            waterTankLevel: payload.level_percent || prevData.waterTankLevel,
-          }));
-        } catch (e) {
-          console.error('Failed to parse MQTT message:', e);
-        }
+    return () => {
+      if (client) {
+        client.end();
       }
-    });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
-    client.on('error', (err) => {
-      console.error('MQTT Connection Error:', err);
-      client.end();
-    });
 
+  useEffect(() => {
     // Simulation for other data points remains for now
     const interval = setInterval(() => {
       setData(prevData => {
@@ -100,9 +114,6 @@ export function useIotData() {
     }, 2000); // Update every 2 seconds
 
     return () => {
-      if (client) {
-        client.end();
-      }
       clearInterval(interval);
     };
   }, []);
